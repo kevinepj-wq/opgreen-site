@@ -1,6 +1,6 @@
 // Sample catalog used only when SHOPIFY_MOCK=1 (offline testing).
 // Mirrors a few real OP Green listings; the live site reads Shopify instead.
-import type { Cart, Collection, Product, ProductCard } from './shopify';
+import type { Cart, Product, ProductCard } from './shopify';
 
 const usd = (amount: string) => ({ amount, currencyCode: 'USD' });
 const img = (file: string, alt: string) => ({
@@ -16,11 +16,13 @@ function product(
   image: ReturnType<typeof img>,
   variants: [string, string, boolean][],
   description: string,
-  collections: string[],
-): Product & { collections: string[] } {
+  productType: string,
+): Product {
   const prices = variants.map((v) => Number(v[1]));
   return {
     id: `gid://shopify/Product/${handle}`,
+    vendor: 'OP Green',
+    productType,
     handle,
     title,
     availableForSale: variants.some((v) => v[2]),
@@ -40,7 +42,6 @@ function product(
         compareAtPrice: null,
       })),
     },
-    collections,
   };
 }
 
@@ -49,57 +50,41 @@ const PRODUCTS = [
     img('op-green-golden-pothos-3-5in.png', 'Golden pothos in a 3.5 inch pot'),
     [['3.5" Pot', '6.99', true]],
     'Greenhouse-grown by OP Green. A healthy, rooted Golden Pothos grown and packed by us.',
-    ['live-plants', 'start-here-grown-in-my-greenhouse']),
+    'Live Houseplant'),
   product('variegated-spider-plant-3-5-pot-op-green-grown', 'Variegated Spider Plant – 3.5" Pot – OP Green Grown',
     img('op-green-variegated-spider-plant-3-5in.png', 'Variegated spider plant'),
     [['3.5" Pot', '6.99', true]],
     'Greenhouse-grown by OP Green. A healthy, rooted Variegated Spider Plant in a 3.5-inch pot.',
-    ['live-plants', 'start-here-grown-in-my-greenhouse']),
+    'Live Houseplant'),
   product('tradescantia-zebrina-cuttings-op-green-grown', 'Tradescantia zebrina Cuttings – OP Green Grown',
     img('IMG_8748_1.jpg', 'Tradescantia zebrina cuttings'),
     [['Unrooted Cutting', '1.99', true], ['Rooted Cutting', '3.49', true]],
     'Silver-green striped leaves with purple tones. Choose unrooted or rooted.',
-    ['live-plants']),
+    'Live Plant Cutting'),
   product('the-plant-propagation-master-guide', 'The Plant Propagation Master Guide',
     img('OPGreen-Plant-Propagation-Master-Guide_Cover.png', 'Propagation guide cover'),
     [['Default Title', '7.00', true]],
     'Turn one houseplant into many: exactly where to cut, how to root, and what to do when cuttings fail.',
-    ['greenhouse-guides', 'digital-guides']),
+    'Digital Guide'),
   product('the-greenhouse-cold-weather-playbook', 'The Greenhouse Cold-Weather Playbook',
     img('OPGreen-Cold-Weather-Playbook_Cover.png', 'Cold-weather playbook cover'),
     [['Default Title', '14.99', true]],
     'A visual 22-page playbook for keeping a greenhouse productive through cold weather.',
-    ['greenhouse-guides', 'digital-guides']),
+    'Digital Guide'),
   product('greenhouse-winterization-planner', 'Greenhouse Winterization Planner (Free Download)',
     img('op-green-greenhouse-winterization-planner.png', 'Winterization planner cover'),
     [['Default Title', '0.00', true]],
     'Free: prepare your greenhouse for cold weather with a simple, low-cost winter plan.',
-    ['greenhouse-guides', 'digital-guides']),
+    'Digital Guide'),
 ];
 
-const TITLES: Record<string, string> = {
-  'live-plants': 'Live Plants – OP Green Grown',
-  'greenhouse-guides': 'Greenhouse Guides',
-  'digital-guides': 'Digital Guides',
-  'start-here-grown-in-my-greenhouse': 'Start Here – Grown in My Greenhouse',
-};
-
 const card = (p: Product): ProductCard => ({
-  id: p.id, handle: p.handle, title: p.title, availableForSale: p.availableForSale,
-  featuredImage: p.featuredImage, priceRange: p.priceRange, compareAtPriceRange: p.compareAtPriceRange,
+  id: p.id, vendor: p.vendor, productType: p.productType, handle: p.handle, title: p.title,
+  availableForSale: p.availableForSale, featuredImage: p.featuredImage,
+  priceRange: p.priceRange, compareAtPriceRange: p.compareAtPriceRange,
 });
 
-export const mockAllProducts = () => PRODUCTS;
-
-export function mockCollection(handle: string): Collection | null {
-  if (handle === 'all') return { title: 'All Products', description: '', products: { nodes: PRODUCTS.map(card) } };
-  if (!TITLES[handle]) return null;
-  return {
-    title: TITLES[handle],
-    description: '',
-    products: { nodes: PRODUCTS.filter((p) => p.collections.includes(handle)).map(card) },
-  };
-}
+export const mockOwnProducts = () => PRODUCTS.map(card);
 
 export function mockProduct(handle: string): Product | null {
   return PRODUCTS.find((p) => p.handle === handle) ?? null;

@@ -1,10 +1,12 @@
-import { mockCollection, mockProduct, mockAllProducts, MockCart } from './mock';
+import { mockOwnProducts, mockProduct, MockCart } from './mock';
 
 export type Money = { amount: string; currencyCode: string };
 export type Image = { url: string; altText: string | null; width?: number; height?: number };
 
 export type ProductCard = {
   id: string;
+  vendor: string;
+  productType: string;
   handle: string;
   title: string;
   availableForSale: boolean;
@@ -84,7 +86,7 @@ async function storefront<T>(
 }
 
 const CARD = `
-  id handle title availableForSale
+  id handle title availableForSale vendor productType
   featuredImage { url altText width height }
   priceRange { minVariantPrice { amount currencyCode } }
   compareAtPriceRange { maxVariantPrice { amount currencyCode } }
@@ -103,22 +105,43 @@ const CART = `
   } }
 `;
 
-export async function getCollection(handle: string): Promise<Collection | null> {
-  if (MOCK) return mockCollection(handle);
-  if (handle === 'all') {
-    const d = await storefront<{ products: { nodes: ProductCard[] } }>(
-      `query { products(first: 100, sortKey: TITLE) { nodes { ${CARD} } } }`,
-    );
-    return { title: 'All Products', description: '', products: d.products };
-  }
-  const d = await storefront<{ collection: Collection | null }>(
-    `query($handle: String!) { collection(handle: $handle) {
-      title description
-      products(first: 100) { nodes { ${CARD} } }
-    } }`,
-    { handle },
+// Only OP Green's own products appear on this site (no Shopify Collective
+// supplier items). Match the vendor case-insensitively ("OP Green"/"OP GREEN").
+export const isOwn = (p: { vendor: string }) => p.vendor.trim().toLowerCase() === 'op green';
+export const isLive = (p: { productType: string }) => /^live/i.test(p.productType);
+
+export async function getOwnProducts(): Promise<ProductCard[]> {
+  if (MOCK) return mockOwnProducts();
+  const d = await storefront<{ products: { nodes: ProductCard[] } }>(
+    `query { products(first: 250, sortKey: TITLE, query: "vendor:'OP Green'") { nodes { ${CARD} } } }`,
   );
-  return d.collection;
+  return d.products.nodes.filter(isOwn);
+}
+
+const PAGES: Record<string, { title: string; description: string; pick: (p: ProductCard) => boolean }> = {
+  all: { title: 'Shop All', description: '', pick: () => true },
+  'live-plants': {
+    title: 'Live Plants – OP Green Grown',
+    description: 'Rooted plants and cuttings grown and packed in our own greenhouse.',
+    pick: isLive,
+  },
+  'greenhouse-guides': {
+    title: 'Greenhouse & Growing Guides',
+    description: 'Practical, printable guides. Instant PDF download after checkout.',
+    pick: (p) => !isLive(p),
+  },
+};
+PAGES['digital-guides'] = PAGES['greenhouse-guides'];
+
+export async function getCollection(handle: string): Promise<Collection | null> {
+  const page = PAGES[handle];
+  if (!page) return null;
+  const products = (await getOwnProducts()).filter(page.pick);
+  // Live plants first in stock, then cheapest; guides cheapest first.
+  products.sort((a, b) =>
+    Number(b.availableForSale) - Number(a.availableForSale) ||
+    Number(a.priceRange.minVariantPrice.amount) - Number(b.priceRange.minVariantPrice.amount));
+  return { title: page.title, description: page.description, products: { nodes: products } };
 }
 
 export async function getProduct(handle: string): Promise<Product | null> {
@@ -137,15 +160,7 @@ export async function getProduct(handle: string): Promise<Product | null> {
     } }`,
     { handle },
   );
-  return d.product;
-}
-
-export async function getAllProductHandles(): Promise<string[]> {
-  if (MOCK) return mockAllProducts().map((p) => p.handle);
-  const d = await storefront<{ products: { nodes: { handle: string }[] } }>(
-    `query { products(first: 250) { nodes { handle } } }`,
-  );
-  return d.products.nodes.map((p) => p.handle);
+  return d.product && isOwn(d.product) ? d.product : null;
 }
 
 // ---------- Cart (never cached) ----------
