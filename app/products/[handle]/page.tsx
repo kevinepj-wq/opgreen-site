@@ -12,8 +12,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { handle } = await params;
   const p = await getProduct(handle).catch(() => null);
   if (!p) return { title: 'Product' };
+  const seoTitle = p.seo.title || p.title;
   return {
-    title: p.seo.title || p.title,
+    // Shopify SEO titles often already end in "| OP GREEN"; don't add it twice.
+    title: /op green/i.test(seoTitle) ? { absolute: seoTitle } : seoTitle,
     description: p.seo.description || p.description.slice(0, 160),
     openGraph: p.featuredImage ? { images: [sized(p.featuredImage.url, 1200)] } : undefined,
   };
