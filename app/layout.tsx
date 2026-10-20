@@ -30,7 +30,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang="en">
       <body>
-        <div className="announce">Grown in our own greenhouse · Digital guides delivered instantly</div>
+        <div className="announce">Free shipping on plant orders $35+ · Grown in our own greenhouse</div>
         <header className="header">
           <div className="wrap">
             <Link href="/" className="logo" aria-label="OP GREEN home">

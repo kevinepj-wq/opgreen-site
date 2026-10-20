@@ -60,7 +60,7 @@ export default async function ProductPage({ params }: Props) {
             </>
           ) : (
             <>
-              <div>✓ Shipping calculated at checkout</div>
+              <div>✓ Free shipping on plant orders $35+ (otherwise $7.99)</div>
             </>
           )}
           <div>✓ Secure checkout powered by Shopify</div>

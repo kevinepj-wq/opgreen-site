@@ -44,6 +44,7 @@ export type CartLine = {
   merchandise: {
     id: string;
     title: string;
+    requiresShipping: boolean;
     product: { title: string; handle: string; featuredImage: Image | null };
   };
 };
@@ -99,7 +100,7 @@ const CART = `
     id quantity
     cost { totalAmount { amount currencyCode } }
     merchandise { ... on ProductVariant {
-      id title
+      id title requiresShipping
       product { title handle featuredImage { url altText } }
     } }
   } }
@@ -215,6 +216,10 @@ export async function updateCartLine(cartId: string, lineId: string, quantity: n
   if (d.cartLinesUpdate.userErrors.length) throw new Error(d.cartLinesUpdate.userErrors[0].message);
   return d.cartLinesUpdate.cart;
 }
+
+// Shopify: plant orders of $35+ ship free (Live Houseplants profile); under that, $7.99.
+export const FREE_SHIPPING_MIN = 35;
+export const FLAT_SHIPPING = 7.99;
 
 export function formatMoney(m: Money): string {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: m.currencyCode }).format(

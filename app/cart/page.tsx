@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { readCart, setQuantity } from './actions';
-import { formatMoney } from '@/lib/shopify';
+import { formatMoney, FREE_SHIPPING_MIN, FLAT_SHIPPING } from '@/lib/shopify';
 import { sized } from '@/lib/img';
 
 export const dynamic = 'force-dynamic';
@@ -20,9 +20,25 @@ export default async function CartPage() {
     );
   }
 
+  const plantTotal = lines
+    .filter((l) => l.merchandise.requiresShipping)
+    .reduce((sum, l) => sum + Number(l.cost.totalAmount.amount), 0);
+  const toGo = FREE_SHIPPING_MIN - plantTotal;
+  const usd = (n: number) => formatMoney({ amount: n.toFixed(2), currencyCode: 'USD' });
+
   return (
     <div className="wrap cart">
       <h1>Your cart</h1>
+      {plantTotal > 0 && (
+        <div className="ship-meter">
+          {toGo > 0 ? (
+            <>Add <strong>{usd(toGo)}</strong> more in plants for <strong>free shipping</strong>. Otherwise shipping is {usd(FLAT_SHIPPING)}.</>
+          ) : (
+            <><strong>Free shipping unlocked.</strong> Your plants ship free.</>
+          )}
+          <div className="bar"><span style={{ width: `${Math.min(100, (plantTotal / FREE_SHIPPING_MIN) * 100)}%` }} /></div>
+        </div>
+      )}
       {lines.map((l) => (
         <div className="line" key={l.id}>
           {l.merchandise.product.featuredImage ? (
@@ -51,7 +67,7 @@ export default async function CartPage() {
       </div>
       <a href={cart.checkoutUrl} className="btn full">Checkout</a>
       <p className="note" style={{ textAlign: 'center' }}>
-        Shipping and taxes are calculated at checkout. Shop Pay, Apple Pay and Google Pay accepted.
+        Plants ship free on orders of $35+, otherwise $7.99. Guides never ship. Taxes calculated at checkout. Shop Pay, Apple Pay and Google Pay accepted.
       </p>
     </div>
   );

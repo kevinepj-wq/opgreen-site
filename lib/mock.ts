@@ -102,7 +102,7 @@ export class MockCart {
         id: `${id}-line-${i}`,
         quantity: l.qty,
         cost: { totalAmount: usd((Number(v.price.amount) * l.qty).toFixed(2)) },
-        merchandise: { id: v.id, title: v.title, product: { title: p.title, handle: p.handle, featuredImage: p.featuredImage } },
+        merchandise: { id: v.id, title: v.title, requiresShipping: /^live/i.test(p.productType), product: { title: p.title, handle: p.handle, featuredImage: p.featuredImage } },
       };
     });
     const subtotal = nodes.reduce((s, n) => s + Number(n.cost.totalAmount.amount), 0);
